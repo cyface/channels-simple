@@ -1,0 +1,8 @@
+channels==1.1.8
+django>=1.11,<1.12
+django_debug_toolbar==1.8
+djangorestframework==3.7.1
+django-semanticui-forms==1.6.4
+redis==2.10.6
+pytz==2017.3
+twisted==17.9.0

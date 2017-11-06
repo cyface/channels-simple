@@ -1,0 +1,42 @@
+version: '2'
+services:
+  redis:
+    container_name: channels_redis
+    dns:
+      - 127.0.0.1
+    image: redis
+  db:
+    container_name: channels_db
+    dns:
+      - 127.0.0.1
+    image: postgres
+  uwsgi:
+    build: .
+    container_name: channels_uwsgi
+    depends_on:
+      - redis
+      - db
+    dns:
+      - 127.0.0.1
+      - 8.8.8.8
+    environment:
+      DJANGO_SETTINGS_MODULE: 'channels.settings_docker_compose'
+    command: uwsgi --yaml=devscripts/docker-compose/uwsgi-compose.yml
+    volumes:
+      - .:/code
+    ports:
+      - 7000
+  nginx:
+    container_name: channels_nginx
+    depends_on:
+      - uwsgi
+      - sd
+    dns:
+      - 127.0.0.1
+      - 8.8.8.8
+    image: nginx
+    volumes:
+      - .:/code
+      - ./devscripts/docker-compose/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - 8000:80
