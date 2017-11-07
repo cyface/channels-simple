@@ -120,6 +120,7 @@ class MyBindingTests(ChannelTestCase):
         except AssertionError:  # WS Client automatically checks that connection is accepted
             self.fail("Connection Rejected!")
 
+        # Create a IntegerValue via databinding - note 'action' and 'data' elements in the payload, which are required
         receive_consumer = client.send_and_consume('websocket.receive',  path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int1', 'value': 1}}})
         receive_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
         self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 1, 'data': {'name': 'int1', 'value': 1}, 'model': 'channels_simple_app.integervalue'}})
@@ -141,6 +142,16 @@ class MyBindingTests(ChannelTestCase):
         integer_value_to_update.save()
         receive_reply = client.receive()
         self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'update', 'pk': 2, 'data': {'name': 'int2', 'value': 3}, 'model': 'channels_simple_app.integervalue'}})
+
+        # Update a IntegerValue via databinding - note 'action', 'pk', and 'data' elements in the payload, which are required
+        update_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'value': 5}}})
+        receive_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'name': 'int1', 'value': 5}, 'model': 'channels_simple_app.integervalue'}})
+
+        # Validate that Integer Value was Updated
+        integer_value_int1 = IntegerValue.objects.get(pk=1)
+        self.assertEqual('int1', integer_value_int1.name)
+        self.assertEqual(5, integer_value_int1.value)
 
         disconnect_consumer = client.send_and_consume('websocket.disconnect', {'path': '/integer/'})
         disconnect_consumer.close()
