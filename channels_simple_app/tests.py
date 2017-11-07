@@ -1,10 +1,11 @@
 from channels.test import ChannelTestCase, WSClient, Client
+from .models import IntegerValue
 import logging
 
 LOGGER = logging.getLogger("channels_simple_app")
 
 
-class MyTests(ChannelTestCase):
+class ConsumerTests(ChannelTestCase):
     def test_websockets_consumer(self):
         #  Create a channels test client
         client = Client()
@@ -70,6 +71,7 @@ class MyTests(ChannelTestCase):
         disconnect_consumer.close()
 
     def test_multi_multiplex_json_websockets_consumer(self):
+        """Tests multiple clients connecting, and all receiving group messages"""
         client = WSClient()
         client2 = WSClient()
 
@@ -103,4 +105,42 @@ class MyTests(ChannelTestCase):
         self.assertEqual(group_reply2, {'stream': 'echo', 'payload': {'key1': 'value', 'key2': 2}})
 
         disconnect_consumer = client.send_and_consume('websocket.disconnect', path='/gamem/54321/')
+        disconnect_consumer.close()
+
+
+class MyBindingTests(ChannelTestCase):
+    def test_binding(self):
+        #  Create a channels test client
+        client = WSClient()
+
+        #  Send a websocket.connect message, passing in the path so it maps to the right consumer via the routing in routing.py
+        #  Consume portion maps that message to a consumer and runs and returns an instance of the consumer
+        try:
+            client.send_and_consume('websocket.connect', path='/integer/')
+        except AssertionError:  # WS Client automatically checks that connection is accepted
+            self.fail("Connection Rejected!")
+
+        receive_consumer = client.send_and_consume('websocket.receive',  path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int1', 'value': 1}}})
+        receive_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 1, 'data': {'name': 'int1', 'value': 1}, 'model': 'channels_simple_app.integervalue'}})
+
+        # Validate that Integer Value was Created
+        all_integer_values = IntegerValue.objects.all()
+        self.assertEqual(1, len(all_integer_values))
+        self.assertEqual('int1', all_integer_values[0].name)
+        self.assertEqual(1, all_integer_values[0].value)
+
+        # Create IntegerValue directly, make sure we get notified
+        IntegerValue.objects.create(pk=2, name='int2', value=2)
+        receive_reply = client.receive()
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 2, 'data': {'name': 'int2', 'value': 2}, 'model': 'channels_simple_app.integervalue'}})
+
+        # Update IntegerValue directly, make sure we get notified
+        integer_value_to_update = IntegerValue.objects.get(pk=2)
+        integer_value_to_update.value = 3
+        integer_value_to_update.save()
+        receive_reply = client.receive()
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'update', 'pk': 2, 'data': {'name': 'int2', 'value': 3}, 'model': 'channels_simple_app.integervalue'}})
+
+        disconnect_consumer = client.send_and_consume('websocket.disconnect', {'path': '/integer/'})
         disconnect_consumer.close()

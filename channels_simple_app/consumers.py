@@ -2,6 +2,11 @@ import logging
 
 from channels.generic.websockets import WebsocketConsumer, WebsocketDemultiplexer, JsonWebsocketConsumer
 
+from django.db import models
+from channels.binding.websockets import WebsocketBinding
+
+from channels_simple_app.models import IntegerValue
+
 LOGGER = logging.getLogger("channels_simple_app")
 
 
@@ -103,7 +108,7 @@ class MyJsonMultiplexConsumer(JsonWebsocketConsumer):
         return [kwargs.get('id')]
 
     def connect(self, message, **kwargs):
-        LOGGER.debug("Multiplex Connect: {}".format(message))
+        LOGGER.debug("Multiplex Connect: {}")
         super(JsonWebsocketConsumer, self).connect(message=message, **kwargs)
 
     # def disconnect(self, message, **kwargs):
@@ -134,7 +139,7 @@ class MyOtherJsonMultiplexConsumer(JsonWebsocketConsumer):
         return [kwargs.get('id')]
 
     def connect(self, message, **kwargs):
-        LOGGER.debug("MO Multiplex Connect: {}".format(message))
+        LOGGER.debug("MO Multiplex Connect")
         super(JsonWebsocketConsumer, self).connect(message=message, **kwargs)
 
     # def disconnect(self, message, **kwargs):
@@ -149,9 +154,32 @@ class MyOtherJsonMultiplexConsumer(JsonWebsocketConsumer):
 
 
 class MyDemultiplexer(WebsocketDemultiplexer):
-
     # Wire your JSON consumers here: {stream_name : consumer}
     consumers = {
         "echo": MyJsonMultiplexConsumer,
         "other": MyOtherJsonMultiplexConsumer,
     }
+
+
+class IntegerValueBinding(WebsocketBinding):
+    model = IntegerValue
+    stream = "intval"
+    fields = ["name", "value"]
+
+    @classmethod
+    def group_names(cls, instance):
+        LOGGER.debug("IntegerValueBinding Group Names")
+        return ["intval-updates"]
+
+    def has_permission(self, user, action, pk):
+        return True
+
+
+class IntegerValueDemultiplexer(WebsocketDemultiplexer):
+
+    consumers = {
+        "intval": IntegerValueBinding.consumer,
+    }
+
+    def connection_groups(self):
+        return ["intval-updates"]

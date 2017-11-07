@@ -36,3 +36,8 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return str(self.room + self.message)
+
+
+class IntegerValue(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    value = models.IntegerField(default=0)
