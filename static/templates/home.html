@@ -29,6 +29,8 @@
         // Add a listener that fires once the websocket opens (will also fire if it closes and re-opens for any reason)
         webSocketBridge.socket.addEventListener('open', function () {
             console.log("Connected to notification socket");
+
+            // Request the current value of the integer value from the server - response will come back through intval_get demultiplex below
             webSocketBridge.send({'stream': 'intval_get', 'payload': {'pk': 1}});
         })
 
@@ -55,7 +57,7 @@
             }
         })
 
-        // Listen for messages on the intval_get stream (responses to get requests from us) and take action on those messages
+        // Listen for messages on the intval_get stream (responses to 'get' requests from us) and take action on those messages
         webSocketBridge.demultiplex('intval_get', function (payload, stream) {
             console.log("Demultiplex IntVal_Get");
             console.log(stream, payload);
