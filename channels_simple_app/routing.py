@@ -1,6 +1,6 @@
 from channels.routing import route_class
 
-from channels_simple_app.consumers import MyConsumer, MyJsonConsumer, MyDemultiplexer, IntegerValueDemultiplexer
+from channels_simple_app.consumers import MyConsumer, MyJsonConsumer, MyDemultiplexer, IntegerValueDemultiplexer, IntegerValueJsonConsumer
 
 channel_routing = [
     route_class(MyConsumer, path=r"^/game/(?P<id>\d+)/"),

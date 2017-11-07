@@ -117,11 +117,12 @@ class MyBindingTests(ChannelTestCase):
         #  Consume portion maps that message to a consumer and runs and returns an instance of the consumer
         try:
             client.send_and_consume('websocket.connect', path='/integer/')
+            client.receive()
         except AssertionError:  # WS Client automatically checks that connection is accepted
             self.fail("Connection Rejected!")
 
         # Create a IntegerValue via databinding - note 'action' and 'data' elements in the payload, which are required
-        receive_consumer = client.send_and_consume('websocket.receive',  path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int1', 'value': 1}}})
+        receive_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int1', 'value': 1}}})
         receive_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
         self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 1, 'data': {'name': 'int1', 'value': 1}, 'model': 'channels_simple_app.integervalue'}})
 
@@ -152,6 +153,11 @@ class MyBindingTests(ChannelTestCase):
         integer_value_int1 = IntegerValue.objects.get(pk=1)
         self.assertEqual('int1', integer_value_int1.name)
         self.assertEqual(5, integer_value_int1.value)
+
+        # Retrieve a IntegerValue via websocket request - note 'stream' and 'payload' which are required
+        update_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval_get', 'payload': {'pk': 1}})
+        receive_reply = client.receive()
+        self.assertEqual(receive_reply, {'stream': 'intval_get', 'payload': {'action': 'get', 'data': {'name': 'int1', 'value': 5}, 'pk': 1}})
 
         disconnect_consumer = client.send_and_consume('websocket.disconnect', {'path': '/integer/'})
         disconnect_consumer.close()

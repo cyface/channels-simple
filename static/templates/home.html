@@ -1,11 +1,58 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 {% block content %}
     <div class="ui raised very padded text container center aligned blue segment">
         <h2 class="ui center aligned icon blue header">
             <i class="circular clone icon"></i>
             Welcome!
         </h2>
+        <h1>Integer Value: <span id="intVal"></span></h1>
+        <p><a href="javascript:updateInteger();">Update Integer</a></p>
     </div>
 {% endblock %}
 {% block bodybottom %}
+    <script src="{% static 'channels/js/websocketbridge.js' %}"></script>
+    <script>
+        var intVal = 0
+        const webSocketBridge = new channels.WebSocketBridge()
+        webSocketBridge.connect('/integer/', [], {'debug': true})
+        webSocketBridge.listen()
+        webSocketBridge.socket.addEventListener('open', function () {
+            console.log("Connected to notification socket")
+            webSocketBridge.send({'stream': 'intval_get', 'payload': {'pk': 1}})
+        })
+        webSocketBridge.socket.addEventListener('message', function (message) {
+            console.log("Message")
+            console.log(message)
+        })
+
+        function updateIntVal(intVal) {
+            console.log("Updating IntVal")
+            console.log(intVal)
+            document.getElementById('intVal').innerHTML = intVal.toString()
+        }
+
+        webSocketBridge.demultiplex('intval', function (payload, stream) {
+            console.log("Demultiplex IntVal")
+            console.log(stream, payload)
+            if (payload.action === 'update') {
+                updateIntVal(payload.data.value)
+            }
+        })
+        webSocketBridge.demultiplex('intval_get', function (payload, stream) {
+            console.log("Demultiplex IntVal_Get")
+            console.log(stream, payload)
+            if (payload.action === 'get') {
+                console.log(payload.data.value)
+                intVal = payload.data.value
+                document.getElementById('intVal').innerHTML = intVal.toString()
+            }
+        })
+    </script>
+    <script>
+        function updateInteger() {
+            console.log("Update Integer Was Clicked")
+            webSocketBridge.send({'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'value': 7}}})
+        }
+    </script>
 {% endblock %}

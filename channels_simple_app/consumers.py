@@ -1,6 +1,7 @@
 import logging
 
 from channels.generic.websockets import WebsocketConsumer, WebsocketDemultiplexer, JsonWebsocketConsumer
+from django.core.exceptions import ObjectDoesNotExist
 
 from django.db import models
 from channels.binding.websockets import WebsocketBinding
@@ -175,10 +176,31 @@ class IntegerValueBinding(WebsocketBinding):
         return True
 
 
-class IntegerValueDemultiplexer(WebsocketDemultiplexer):
+class IntegerValueJsonConsumer(JsonWebsocketConsumer):
+    # Set to True to automatically port users from HTTP cookies
+    # (you don't need channel_session_user, this implies it)
+    http_user = True
 
+    # Set to True if you want it, else leave it out
+    strict_ordering = False
+
+    def receive(self, text=None, **kwargs):
+        LOGGER.debug("Integer Value Get Receive: {}".format(text))
+        multiplexer = kwargs.get('multiplexer')
+        if text.get('pk'):
+            try:
+                found_integer_value = IntegerValue.objects.get(pk=text.get('pk'))
+                multiplexer.send({'action': 'get', 'pk': found_integer_value.pk, 'data': {'name': found_integer_value.name, 'value': found_integer_value.value}})
+            except ObjectDoesNotExist:
+                multiplexer.send({'error': 'Object Not Found'})
+        else:
+            multiplexer.send({'error': 'No PK Supplied'})
+
+
+class IntegerValueDemultiplexer(WebsocketDemultiplexer):
     consumers = {
         "intval": IntegerValueBinding.consumer,
+        "intval_get": IntegerValueJsonConsumer,
     }
 
     def connection_groups(self):
