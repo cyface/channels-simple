@@ -11,48 +11,63 @@
     </div>
 {% endblock %}
 {% block bodybottom %}
+    <!-- Load the websocket bridge code that comes with Django Channels -->
     <script src="{% static 'channels/js/websocketbridge.js' %}"></script>
     <script>
-        var intVal = 0
-        const webSocketBridge = new channels.WebSocketBridge()
-        webSocketBridge.connect('/integer/', [], {'debug': true})
-        webSocketBridge.listen()
+        // Init intVal to zero when page loads
+        var intVal = 0;
+
+        // Create a new websocket bridge object
+        const webSocketBridge = new channels.WebSocketBridge();
+
+        // Connect the bridge to the integer demultiplexer
+        webSocketBridge.connect('/integer/', [], {'debug': true});
+
+        // Start listening for events
+        webSocketBridge.listen();
+
+        // Add a listener that fires once the websocket opens (will also fire if it closes and re-opens for any reason)
         webSocketBridge.socket.addEventListener('open', function () {
-            console.log("Connected to notification socket")
-            webSocketBridge.send({'stream': 'intval_get', 'payload': {'pk': 1}})
-        })
-        webSocketBridge.socket.addEventListener('message', function (message) {
-            console.log("Message")
-            console.log(message)
+            console.log("Connected to notification socket");
+            webSocketBridge.send({'stream': 'intval_get', 'payload': {'pk': 1}});
         })
 
-        function updateIntVal(intVal) {
-            console.log("Updating IntVal")
-            console.log(intVal)
-            document.getElementById('intVal').innerHTML = intVal.toString()
+        // This is a debugging listener that just prints out any messages that come in
+        webSocketBridge.socket.addEventListener('message', function (message) {
+            console.log("Message Received: ");
+            console.log(message);
+        })
+
+        // Function to update the HTML with a new integer value
+        function updateIntVal(intValParam) {
+            intVal = intValParam;
+            console.log("Updating IntVal");
+            console.log(intVal);
+            document.getElementById('intVal').innerHTML = intVal.toString();
         }
 
+        // Listen for traffic on the main intval stream (push events from server), and take action on those messages
         webSocketBridge.demultiplex('intval', function (payload, stream) {
-            console.log("Demultiplex IntVal")
-            console.log(stream, payload)
+            console.log("Demultiplex IntVal");
+            console.log(stream, payload);
             if (payload.action === 'update') {
-                updateIntVal(payload.data.value)
+                updateIntVal(payload.data.value);
             }
         })
+
+        // Listen for messages on the intval_get stream (responses to get requests from us) and take action on those messages
         webSocketBridge.demultiplex('intval_get', function (payload, stream) {
-            console.log("Demultiplex IntVal_Get")
-            console.log(stream, payload)
+            console.log("Demultiplex IntVal_Get");
+            console.log(stream, payload);
             if (payload.action === 'get') {
-                console.log(payload.data.value)
-                intVal = payload.data.value
-                document.getElementById('intVal').innerHTML = intVal.toString()
+                updateIntVal(payload.data.value);
             }
         })
-    </script>
-    <script>
+
+        // Function to send an update message to the server once they have clicked the update link
         function updateInteger() {
-            console.log("Update Integer Was Clicked")
-            webSocketBridge.send({'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'value': 7}}})
+            console.log("Update Integer Was Clicked");
+            webSocketBridge.send({'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'value': intVal + 1}}});
         }
     </script>
 {% endblock %}
