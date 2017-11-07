@@ -1,51 +1,86 @@
 import logging
 
-from channels import Channel, Group
-from channels.sessions import channel_session, enforce_ordering
-
-from .models import ChatMessage
+from channels.generic.websockets import WebsocketConsumer, JsonWebsocketConsumer
 
 LOGGER = logging.getLogger("channels_simple_app")
 
 
-# Connected to chat-messages
-def msg_consumer(message):
-    # Save to model
-    room = message.content['room']
-    ChatMessage.objects.create(
-        room=room,
-        message=message.content['message'],
-    )
-    # Broadcast to listening sockets
-    Group("chat-%s" % room).send({
-        "text": message.content['message'],
-    })
+class MyConsumer(WebsocketConsumer):
+    # Set to True to automatically port users from HTTP cookies
+    # (you don't need channel_session_user, this implies it)
+    http_user = True
+
+    # Set to True if you want it, else leave it out
+    #    strict_ordering = False
+
+    def connection_groups(self, **kwargs):
+        """
+        Called to return the list of groups to automatically add/remove
+        this connection to/from.
+        """
+        LOGGER.debug("GROUPS: {}".format(kwargs.get('id')))
+        return [kwargs.get('id')]
+
+    # def connect(self, message, **kwargs):
+    #     """
+    #     Perform things on connection start
+    #     """
+    #     # Accept the connection; this is done by default if you don't override
+    #     # the connect function.
+    #     self.message.reply_channel.send({"accept": True})
+    #     LOGGER.debug("CONNECT")
+
+    def receive(self, text=None, bytes=None, **kwargs):
+        """
+        Called when a message is received with either text or bytes
+        filled out.
+        """
+        # Simple echo
+        LOGGER.debug("DEBUG TEXT:{}".format(text))
+        self.send(text=text + "reply", bytes=bytes)
+
+        # def disconnect(self, message, **kwargs):
+        #     """
+        #     Perform things on connection close
+        #     """
+        #     pass
 
 
-# Connected to websocket.connect
-@channel_session
-@enforce_ordering
-def ws_connect(message):
-    # Work out room name from path (ignore slashes)
-    room = message.content['path'].strip("/")
-    # Save room in session and add us to the group
-    message.channel_session['room'] = room
-    Group("chat-%s" % room).add(message.reply_channel)
-    # Accept the connection request
-    message.reply_channel.send({"accept": True})
+class MyJsonConsumer(JsonWebsocketConsumer):
+    # Set to True to automatically port users from HTTP cookies
+    # (you don't need channel_session_user, this implies it)
+    http_user = True
 
+    # Set to True if you want it, else leave it out
+    #    strict_ordering = False
 
-# Connected to websocket.receive
-@channel_session
-def ws_message(message):
-    # Stick the message onto the processing queue
-    Channel("chat-messages").send({
-        "room": message.channel_session['room'],
-        "message": message['text'],
-    })
+    def connection_groups(self, **kwargs):
+        """
+        Called to return the list of groups to automatically add/remove
+        this connection to/from.
+        """
+        LOGGER.debug("JGROUPS: {}".format(kwargs.get('id')))
+        return [kwargs.get('id')]
 
+    # def connect(self, message, **kwargs):
+    #     """
+    #     Perform things on connection start
+    #     """
+    #     # Accept the connection; this is done by default if you don't override
+    #     # the connect function.
+    #     self.message.reply_channel.send({"accept": True})
+    #     LOGGER.debug("CONNECT")
 
-# Connected to websocket.disconnect
-@channel_session
-def ws_disconnect(message):
-    Group("chat-%s" % message.channel_session['room']).discard(message.reply_channel)
+    def receive(self, text=None, **kwargs):
+        """
+        Called when a message is received with text filled out.
+        """
+        # Simple echo
+        LOGGER.debug("JDEBUG TEXT:{}".format(text))
+        self.send({'text': text.get('text') + "reply"})
+
+        # def disconnect(self, message, **kwargs):
+        #     """
+        #     Perform things on connection close
+        #     """
+        #     pass

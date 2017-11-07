@@ -1,9 +1,8 @@
-from channels.routing import route
-from channels_simple_app.consumers import ws_connect, ws_message, ws_disconnect, msg_consumer
+from channels.routing import route_class
+
+from channels_simple_app.consumers import MyConsumer, MyJsonConsumer
 
 channel_routing = [
-    route("websocket.connect", ws_connect),
-    route("websocket.receive", ws_message),
-    route("websocket.disconnect", ws_disconnect),
-    route("chat-messages", msg_consumer),
+    route_class(MyConsumer, path=r"^/game/(?P<id>\d+)/"),
+    route_class(MyJsonConsumer, path=r"^/gamej/(?P<id>\d+)/"),
 ]
