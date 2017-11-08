@@ -1,19 +1,35 @@
-version: '2'
+version: "3"
 services:
   interfaceserver:
     build: .
     command: daphne -b 0.0.0.0 -p 8000 channels_simple.asgi:channel_layer
-    user: app
-    working_dir: /app
+    depends_on:
+      - database
+      - redis
     ports:
       - 8000:8000
-    volumes:
-      - .:/app
-  workerserver:
-    build: .
     user: app
     working_dir: /app
+    volumes:
+      - .:/app
+  workerserver_1:
+    build: .
     command: python manage.py runworker --settings=channels_simple.settings_docker_compose
+    depends_on:
+      - database
+      - redis
+    working_dir: /app
+    user: app
+    volumes:
+      - .:/app
+  workerserver_2:
+    build: .
+    command: python manage.py runworker --settings=channels_simple.settings_docker_compose
+    depends_on:
+      - database
+      - redis
+    working_dir: /app
+    user: app
     volumes:
       - .:/app
   database:
@@ -21,15 +37,13 @@ services:
   redis:
     image: redis:3.0-alpine
   nginx:
-#    dns:
-#      - 127.0.0.1
-#      - 8.8.8.8
     image: nginx
     depends_on:
       - database
       - interfaceserver
       - redis
-      - workerserver
+      - workerserver_1
+      - workerserver_2
     volumes:
       - .:/app
       - ./devscripts/docker-compose/nginx.conf:/etc/nginx/nginx.conf:ro
