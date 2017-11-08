@@ -6,6 +6,8 @@ services:
     depends_on:
       - database
       - redis
+    environment:
+      DJANGO_SETTINGS_MODULE: 'channels_simple.settings_docker_compose'
     ports:
       - 8000:8000
     user: app
@@ -14,20 +16,24 @@ services:
       - .:/app
   workerserver_1:
     build: .
-    command: python manage.py runworker --settings=channels_simple.settings_docker_compose
+    command: python manage.py runworker
     depends_on:
       - database
       - redis
+    environment:
+      DJANGO_SETTINGS_MODULE: 'channels_simple.settings_docker_compose'
     working_dir: /app
     user: app
     volumes:
       - .:/app
   workerserver_2:
     build: .
-    command: python manage.py runworker --settings=channels_simple.settings_docker_compose
+    command: python manage.py runworker
     depends_on:
       - database
       - redis
+    environment:
+      DJANGO_SETTINGS_MODULE: 'channels_simple.settings_docker_compose'
     working_dir: /app
     user: app
     volumes:
