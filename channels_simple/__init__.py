@@ -1,1 +1,1 @@
-"""CardGame"""
+"""Outer App"""

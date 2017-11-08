@@ -13,7 +13,7 @@ class ConsumerTests(ChannelTestCase):
         #  Send a websocket.connect message, passing in the path so it maps to the right consumer via the routing in routing.py
         #  Consume portion maps that message to a consumer and runs and returns an instance of the consumer
         connect_consumer = client.send_and_consume('websocket.connect', {'path': '/game/123/'})
-        connect_reply = client.receive()
+        connect_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
         self.assertEqual(connect_reply, {'accept': True})  # websocket.connect should return acceptance of connection
 
         receive_consumer = client.send_and_consume('websocket.receive', {'path': '/game/123/', 'text': 'text'})
@@ -21,7 +21,7 @@ class ConsumerTests(ChannelTestCase):
         self.assertEqual(receive_reply, {'text': 'textreply'})
 
         receive_consumer.group_send('123', text='grouptext')  # This sends a message out to a group - shortcut off of the Websocket Consumer
-        group_reply = client.receive()
+        group_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
         self.assertEqual(group_reply, {'text': 'grouptext'})
 
         disconnect_consumer = client.send_and_consume('websocket.disconnect', {'path': '/game/123/'})

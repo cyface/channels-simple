@@ -3,10 +3,7 @@ import logging
 from channels.generic.websockets import WebsocketConsumer, WebsocketDemultiplexer, JsonWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
 
-from django.db import models
-from channels.binding.websockets import WebsocketBinding
-
-from channels_simple_app.models import IntegerValue
+from channels_simple_app.models import IntegerValue, IntegerValueBinding
 
 LOGGER = logging.getLogger("channels_simple_app")
 
@@ -160,20 +157,6 @@ class MyDemultiplexer(WebsocketDemultiplexer):
         "echo": MyJsonMultiplexConsumer,
         "other": MyOtherJsonMultiplexConsumer,
     }
-
-
-class IntegerValueBinding(WebsocketBinding):
-    model = IntegerValue
-    stream = "intval"
-    fields = ["name", "value"]
-
-    @classmethod
-    def group_names(cls, instance):
-        LOGGER.debug("IntegerValueBinding Group Names")
-        return ["intval-updates"]
-
-    def has_permission(self, user, action, pk):
-        return True
 
 
 class IntegerValueJsonConsumer(JsonWebsocketConsumer):

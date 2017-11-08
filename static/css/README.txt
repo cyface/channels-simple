@@ -1,0 +1,1 @@
+The css directory is a placeholder for css.

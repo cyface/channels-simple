@@ -30,10 +30,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels_simple_app',
-    'rest_framework',
     'channels',
-    'semanticuiforms'
+    'channels_simple_app',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -149,6 +147,11 @@ LOGGING = {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': False,
+        },
+        'django.template': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
         },
         'channels_simple_app': {
             'handlers': ['console'],

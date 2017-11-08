@@ -1,42 +1,37 @@
 version: '2'
 services:
-  redis:
-    container_name: channels_redis
-    dns:
-      - 127.0.0.1
-    image: redis
-  db:
-    container_name: channels_db
-    dns:
-      - 127.0.0.1
-    image: postgres
-  uwsgi:
+  interfaceserver:
     build: .
-    container_name: channels_uwsgi
-    depends_on:
-      - redis
-      - db
-    dns:
-      - 127.0.0.1
-      - 8.8.8.8
-    environment:
-      DJANGO_SETTINGS_MODULE: 'channels.settings_docker_compose'
-    command: uwsgi --yaml=devscripts/docker-compose/uwsgi-compose.yml
-    volumes:
-      - .:/code
+    command: daphne -b 0.0.0.0 -p 8000 channels_simple.asgi:channel_layer
+    user: app
+    working_dir: /app
     ports:
-      - 7000
-  nginx:
-    container_name: channels_nginx
-    depends_on:
-      - uwsgi
-      - sd
-    dns:
-      - 127.0.0.1
-      - 8.8.8.8
-    image: nginx
+      - 8000:8000
     volumes:
-      - .:/code
+      - .:/app
+  workerserver:
+    build: .
+    user: app
+    working_dir: /app
+    command: python manage.py runworker --settings=channels_simple.settings_docker_compose
+    volumes:
+      - .:/app
+  database:
+    image: postgres:9.5
+  redis:
+    image: redis:3.0-alpine
+  nginx:
+#    dns:
+#      - 127.0.0.1
+#      - 8.8.8.8
+    image: nginx
+    depends_on:
+      - database
+      - interfaceserver
+      - redis
+      - workerserver
+    volumes:
+      - .:/app
       - ./devscripts/docker-compose/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - 8000:80
+      - 8668:80
