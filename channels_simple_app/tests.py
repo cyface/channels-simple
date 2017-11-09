@@ -122,27 +122,27 @@ class MyBindingTests(ChannelTestCase):
             self.fail("Connection Rejected!")
 
         # Create a IntegerValue via databinding - note 'action' and 'data' elements in the payload, which are required
-        receive_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int1', 'value': 1}}})
+        receive_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval', 'payload': {'action': 'create', 'data': {'name': 'int0', 'value': 1}}})
         receive_reply = client.receive()  # receive() grabs the content of the next message off of the client's reply_channel
-        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 1, 'data': {'name': 'int1', 'value': 1}, 'model': 'channels_simple_app.integervalue'}})
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 2, 'data': {'name': 'int0', 'value': 1}, 'model': 'channels_simple_app.integervalue'}})
 
         # Validate that Integer Value was Created
         all_integer_values = IntegerValue.objects.all()
-        self.assertEqual(1, len(all_integer_values))
-        self.assertEqual('int1', all_integer_values[0].name)
-        self.assertEqual(1, all_integer_values[0].value)
+        self.assertEqual(2, len(all_integer_values))
+        self.assertEqual('int0', all_integer_values[1].name)
+        self.assertEqual(1, all_integer_values[1].value)
 
         # Create IntegerValue directly, make sure we get notified
-        IntegerValue.objects.create(pk=2, name='int2', value=2)
+        IntegerValue.objects.create(pk=3, name='int2', value=2)
         receive_reply = client.receive()
-        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 2, 'data': {'name': 'int2', 'value': 2}, 'model': 'channels_simple_app.integervalue'}})
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'create', 'pk': 3, 'data': {'name': 'int2', 'value': 2}, 'model': 'channels_simple_app.integervalue'}})
 
         # Update IntegerValue directly, make sure we get notified
-        integer_value_to_update = IntegerValue.objects.get(pk=2)
+        integer_value_to_update = IntegerValue.objects.get(pk=3)
         integer_value_to_update.value = 3
         integer_value_to_update.save()
         receive_reply = client.receive()
-        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'update', 'pk': 2, 'data': {'name': 'int2', 'value': 3}, 'model': 'channels_simple_app.integervalue'}})
+        self.assertEqual(receive_reply, {'stream': 'intval', 'payload': {'action': 'update', 'pk': 3, 'data': {'name': 'int2', 'value': 3}, 'model': 'channels_simple_app.integervalue'}})
 
         # Update a IntegerValue via databinding - note 'action', 'pk', and 'data' elements in the payload, which are required
         update_consumer = client.send_and_consume('websocket.receive', path='/integer/', text={'stream': 'intval', 'payload': {'action': 'update', 'pk': 1, 'data': {'value': 5}}})
